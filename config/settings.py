@@ -25,6 +25,12 @@ class Settings:
             os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
         )
         self.gemini_api_key: str | None = os.getenv("GEMINI_API_KEY")
+        self.gemini_embedding_model: str = os.getenv(
+            "GEMINI_EMBEDDING_MODEL", "gemini-embedding-2-preview"
+        )
+        self.faiss_index_path: str = os.getenv(
+            "FAISS_INDEX_PATH", str(BASE_DIR / "data" / "faiss_index")
+        )
 
 
 def get_settings() -> Settings:

@@ -56,3 +56,8 @@ Thumbs.db
 # Project Data (ignore data files except .gitkeep)
 data/*
 !data/.gitkeep
+
+# FAISS Vector Store Indexes & Artifacts
+faiss_index/
+*.faiss
+*.pkl
