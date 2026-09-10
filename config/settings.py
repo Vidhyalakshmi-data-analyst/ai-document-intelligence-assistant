@@ -28,6 +28,9 @@ class Settings:
         self.gemini_embedding_model: str = os.getenv(
             "GEMINI_EMBEDDING_MODEL", "gemini-embedding-2-preview"
         )
+        self.gemini_generation_model: str = os.getenv(
+            "GEMINI_GENERATION_MODEL", "gemini-3.7-flash"
+        )
         self.faiss_index_path: str = os.getenv(
             "FAISS_INDEX_PATH", str(BASE_DIR / "data" / "faiss_index")
         )
