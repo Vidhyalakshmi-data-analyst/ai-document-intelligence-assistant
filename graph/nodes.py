@@ -55,3 +55,19 @@ def generate_answer_node(
         **state,
         "answer": answer,
     }
+
+
+def extract_sources_node(state: GraphState) -> GraphState:
+    """Extract source metadata from retrieved documents."""
+    sources = [
+        {
+            "page": document.metadata.get("page"),
+            "source": document.metadata.get("source"),
+        }
+        for document in state["retrieved_documents"]
+    ]
+
+    return {
+        **state,
+        "sources": sources,
+    }

@@ -31,9 +31,12 @@ class TestAnswerQuestion(unittest.TestCase):
         )
 
         self.assertEqual(
-            result,
-            "Employees receive 20 days of annual leave.",
-        )
+    		result,
+    		{
+        		"answer": "Employees receive 20 days of annual leave.",
+        		"sources": [],
+    		},
+	)
 
     @patch("chat.service.build_graph")
     def test_strips_question_before_workflow_invocation(
@@ -43,8 +46,14 @@ class TestAnswerQuestion(unittest.TestCase):
         """Test that surrounding whitespace is removed from the question."""
         mock_graph = MagicMock()
         mock_graph.invoke.return_value = {
-            "answer": "Annual leave is 20 days.",
-        }
+    		"answer": "Employees receive 20 days of annual leave.",
+    		"sources": [
+        		{
+            		"page": 3,
+            		"source": "employee_policy.pdf",
+        		}
+    			],
+	}
         mock_build_graph.return_value = mock_graph
 
         vector_store = object()

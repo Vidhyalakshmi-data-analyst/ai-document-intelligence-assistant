@@ -8,6 +8,7 @@ from graph.nodes import (
     build_context_node,
     generate_answer_node,
     retrieve_node,
+    extract_sources_node
 )
 
 from graph.workflow import build_graph
@@ -23,6 +24,7 @@ class TestGraphState(unittest.TestCase):
             "retrieved_documents": [],
             "context": "",
             "answer": "",
+            "sources": [],
         }
 
         self.assertEqual(state["question"], "What is the leave policy?")
@@ -40,6 +42,7 @@ class TestGraphNodes(unittest.TestCase):
             "retrieved_documents": [],
             "context": "",
             "answer": "",
+            "sources": [],
         }
 
     @patch("graph.nodes.retrieve_documents")
@@ -50,7 +53,10 @@ class TestGraphNodes(unittest.TestCase):
         documents = [
             Document(
                 page_content="Employees receive 20 days of annual leave.",
-                metadata={"page": 1},
+                metadata={
+    		"page": 1,
+    		"source": "employee_policy.pdf",
+		},
             )
         ]
 
@@ -78,11 +84,17 @@ class TestGraphNodes(unittest.TestCase):
             "retrieved_documents": [
                 Document(
                     page_content="Annual leave is 20 days.",
-                    metadata={"page": 1},
+                    metadata={
+    			"page": 1,
+    			"source": "employee_policy.pdf",
+		},
                 ),
                 Document(
                     page_content="Leave requests require manager approval.",
-                    metadata={"page": 2},
+                    metadata={
+    			"page": 2,
+    			"source": "employee_policy.pdf",
+		},
                 ),
             ],
         }
@@ -94,6 +106,45 @@ class TestGraphNodes(unittest.TestCase):
             "Annual leave is 20 days.\n\n"
             "Leave requests require manager approval.",
         )
+
+    def test_extract_sources_node(self):
+        """Test that source metadata is extracted from retrieved documents."""
+        state: GraphState = {
+            **self.initial_state,
+            "retrieved_documents": [
+                Document(
+                    page_content="Annual leave is 20 days.",
+                    metadata={
+                        "page": 1,
+                        "source": "employee_policy.pdf",
+                    },
+                ),
+                Document(
+                    page_content="Leave requests require manager approval.",
+                    metadata={
+                        "page": 2,
+                        "source": "employee_policy.pdf",
+                    },
+                ),
+            ],
+        }
+
+        result = extract_sources_node(state)
+
+        self.assertEqual(
+            result["sources"],
+            [
+                {
+                    "page": 1,
+                    "source": "employee_policy.pdf",
+                },
+                {
+                    "page": 2,
+                    "source": "employee_policy.pdf",
+                },
+            ],
+        )
+
 
     @patch("graph.nodes.generate_answer")
     def test_generate_answer_node(self, mock_generate):
@@ -127,7 +178,6 @@ class TestGraphNodes(unittest.TestCase):
 
 class TestGraphWorkflow(unittest.TestCase):
     """Tests for the compiled LangGraph workflow."""
-
     @patch("graph.nodes.generate_answer")
     @patch("graph.nodes.retrieve_documents")
     def test_graph_executes_in_expected_order(
@@ -140,11 +190,17 @@ class TestGraphWorkflow(unittest.TestCase):
         documents = [
             Document(
                 page_content="Annual leave is 20 days.",
-                metadata={"page": 1},
+                metadata={
+    		"page": 1,
+    		"source": "employee_policy.pdf",
+		},
             ),
             Document(
                 page_content="Leave requests require manager approval.",
-                metadata={"page": 2},
+                metadata={
+    			"page": 2,
+    			"source": "employee_policy.pdf",
+			},
             ),
         ]
 
@@ -166,6 +222,7 @@ class TestGraphWorkflow(unittest.TestCase):
             "retrieved_documents": [],
             "context": "",
             "answer": "",
+            "sources": [],
         }
 
         result = graph.invoke(initial_state)
@@ -201,6 +258,20 @@ class TestGraphWorkflow(unittest.TestCase):
         self.assertEqual(
             result["answer"],
             "Employees receive 20 days of annual leave.",
+        )
+
+        self.assertEqual(
+            result["sources"],
+            [
+                {
+                    "page": 1,
+                    "source": "employee_policy.pdf",
+                },
+                {
+                    "page": 2,
+                    "source": "employee_policy.pdf",
+                },
+            ],
         )
 
 

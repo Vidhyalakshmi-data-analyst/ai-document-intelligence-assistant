@@ -49,5 +49,8 @@ def answer_question(
     if not isinstance(answer, str) or not answer.strip():
         raise ValueError("Workflow returned an empty answer.")
 
-    return answer.strip()
+    return {
+          "answer": answer.strip(),
+          "sources": result.get("sources", []),
+    }
 

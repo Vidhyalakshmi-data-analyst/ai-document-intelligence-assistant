@@ -17,3 +17,4 @@ class GraphState(TypedDict):
     retrieved_documents: list[Document]
     context: str
     answer: str
+    sources: list[dict[str, object]]

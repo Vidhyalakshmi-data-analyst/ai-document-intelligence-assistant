@@ -12,6 +12,7 @@ from langgraph.graph import END, START, StateGraph
 from graph.nodes import (
     build_context_node,
     generate_answer_node,
+    extract_sources_node,
     retrieve_node,
 )
 from graph.state import GraphState
@@ -43,11 +44,13 @@ def build_graph(
 
     graph.add_node("retrieve", retrieve)
     graph.add_node("build_context", build_context_node)
+    graph.add_node("extract_sources", extract_sources_node)
     graph.add_node("generate_answer", generate_answer)
 
     graph.add_edge(START, "retrieve")
     graph.add_edge("retrieve", "build_context")
-    graph.add_edge("build_context", "generate_answer")
+    graph.add_edge("build_context", "extract_sources")
+    graph.add_edge("extract_sources", "generate_answer")
     graph.add_edge("generate_answer", END)
 
     return graph.compile()
