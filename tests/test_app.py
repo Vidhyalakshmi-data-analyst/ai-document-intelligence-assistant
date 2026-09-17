@@ -169,6 +169,75 @@ class TestAppUIErrorHandling(unittest.TestCase):
         mock_error.assert_called_once()
         self.assertIn("unable to produce an answer", mock_error.call_args[0][0])
 
+    @patch("app.process_document")
+    @patch("app.save_temporary_file")
+    def test_process_uploaded_document_success_updates_session_state(
+        self,
+        mock_save_temp: MagicMock,
+        mock_process_doc: MagicMock,
+    ) -> None:
+        """Successful document processing stores the vector store and document name."""
+        vector_store = MagicMock()
+        temp_path = MagicMock()
+        temp_path.exists.return_value = False
+
+        mock_save_temp.return_value = temp_path
+        mock_process_doc.return_value = vector_store
+
+        app.process_uploaded_document(self.mock_file)
+
+        mock_save_temp.assert_called_once_with(self.mock_file)
+        mock_process_doc.assert_called_once_with(file_path=temp_path)
+
+        self.assertIs(
+            self.session_state["vector_store"],
+            vector_store,
+        )
+        self.assertEqual(
+            self.session_state["processed_document_name"],
+            "test_policy.pdf",
+        )
+
+    @patch("app.display_sources")
+    @patch.object(app.st, "write")
+    @patch.object(app.st, "subheader")
+    @patch("app.answer_question")
+    def test_handle_question_success_displays_answer_and_sources(
+        self,
+        mock_answer_question: MagicMock,
+        mock_subheader: MagicMock,
+        mock_write: MagicMock,
+        mock_display_sources: MagicMock,
+    ) -> None:
+        """Successful question answering displays the answer and source information."""
+        vector_store = MagicMock()
+        sources = [
+            {
+                "page": 0,
+                "source": "test_policy.pdf",
+            }
+        ]
+
+        self.session_state["vector_store"] = vector_store
+
+        mock_answer_question.return_value = {
+            "answer": "Employees receive 20 days of annual leave.",
+            "sources": sources,
+        }
+
+        app.handle_question("  How many days of annual leave?  ")
+
+        mock_answer_question.assert_called_once_with(
+            question="How many days of annual leave?",
+            vector_store=vector_store,
+        )
+
+        mock_subheader.assert_called_once_with("Answer")
+        mock_write.assert_called_once_with(
+            "Employees receive 20 days of annual leave."
+        )
+        mock_display_sources.assert_called_once_with(sources)
+
 
 if __name__ == "__main__":
     unittest.main()
