@@ -50,6 +50,17 @@ def process_uploaded_document(uploaded_file: Any) -> None:
         vector_store = process_document(file_path=temp_path)
         st.session_state["vector_store"] = vector_store
         st.session_state["processed_document_name"] = uploaded_file.name
+    except ValueError as exc:
+        st.session_state["vector_store"] = None
+        st.session_state["processed_document_name"] = None
+        if "API key" in str(exc):
+            st.error("Gemini API key is not configured. Please check your configuration.")
+        else:
+            st.error(f"Failed to process document: {exc}")
+    except Exception as exc:
+        st.session_state["vector_store"] = None
+        st.session_state["processed_document_name"] = None
+        st.error(f"Failed to process document: {exc}")
     finally:
         if temp_path.exists():
             temp_path.unlink()
@@ -88,14 +99,30 @@ def handle_question(question: str) -> None:
         st.warning("Please enter a question.")
         return
 
-    response = answer_question(
-        question=cleaned_question,
-        vector_store=vector_store,
-    )
+    try:
+        response = answer_question(
+            question=cleaned_question,
+            vector_store=vector_store,
+        )
+    except ValueError as exc:
+        if "API key" in str(exc):
+            st.error("Gemini API key is not configured. Please check your configuration.")
+        else:
+            st.error(f"Failed to generate answer: {exc}")
+        return
+    except Exception as exc:
+        st.error(f"Failed to generate answer: {exc}")
+        return
+
+    answer = response.get("answer") if isinstance(response, dict) else None
+    if not answer or not str(answer).strip():
+        st.error("The assistant was unable to produce an answer.")
+        return
 
     st.subheader("Answer")
-    st.write(response["answer"])
-    display_sources(response.get("sources", []))
+    st.write(str(answer).strip())
+    sources = response.get("sources", []) if isinstance(response, dict) else []
+    display_sources(sources)
 
 
 def render_document_section() -> None:
