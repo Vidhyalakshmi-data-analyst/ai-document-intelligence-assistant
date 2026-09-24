@@ -47,8 +47,8 @@ class TestGeminiEmbeddings(unittest.TestCase):
             self.assertIn("Gemini API key is not configured", str(ctx.exception))
 
     @unittest.skipUnless(
-        os.getenv("GEMINI_API_KEY"),
-        "Requires valid GEMINI_API_KEY environment variable for live API integration test.",
+        os.getenv("RUN_LIVE_API_TESTS", "").lower() in ("true", "1") and os.getenv("GEMINI_API_KEY"),
+        "Live API test disabled by default. Set RUN_LIVE_API_TESTS=true and GEMINI_API_KEY to run.",
     )
     def test_embed_documents_live_api(self) -> None:
         """Live integration test: verifies embedding generation with actual Gemini API."""
