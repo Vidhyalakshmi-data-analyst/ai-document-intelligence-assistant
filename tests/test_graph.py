@@ -145,6 +145,109 @@ class TestGraphNodes(unittest.TestCase):
             ],
         )
 
+    def test_extract_sources_node_deduplicates_same_page_chunks(self):
+        """Test that multiple chunks from the same document and page are deduplicated."""
+        state: GraphState = {
+            **self.initial_state,
+            "retrieved_documents": [
+                Document(
+                    page_content="First chunk from page 1.",
+                    metadata={"page": 1, "source": "employee_policy.pdf"},
+                ),
+                Document(
+                    page_content="Second chunk from page 1.",
+                    metadata={"page": 1, "source": "employee_policy.pdf"},
+                ),
+                Document(
+                    page_content="Third chunk from page 1.",
+                    metadata={"page": 1, "source": "employee_policy.pdf"},
+                ),
+            ],
+        }
+
+        result = extract_sources_node(state)
+
+        self.assertEqual(
+            result["sources"],
+            [
+                {
+                    "page": 1,
+                    "source": "employee_policy.pdf",
+                },
+            ],
+        )
+
+    def test_extract_sources_node_preserves_different_pages(self):
+        """Test that different pages from the same source document are not discarded."""
+        state: GraphState = {
+            **self.initial_state,
+            "retrieved_documents": [
+                Document(
+                    page_content="Page 1 chunk.",
+                    metadata={"page": 1, "source": "employee_policy.pdf"},
+                ),
+                Document(
+                    page_content="Page 2 chunk.",
+                    metadata={"page": 2, "source": "employee_policy.pdf"},
+                ),
+                Document(
+                    page_content="Another page 1 chunk.",
+                    metadata={"page": 1, "source": "employee_policy.pdf"},
+                ),
+            ],
+        }
+
+        result = extract_sources_node(state)
+
+        self.assertEqual(
+            result["sources"],
+            [
+                {
+                    "page": 1,
+                    "source": "employee_policy.pdf",
+                },
+                {
+                    "page": 2,
+                    "source": "employee_policy.pdf",
+                },
+            ],
+        )
+
+    def test_extract_sources_node_preserves_first_seen_ordering(self):
+        """Test that source order reflects the first-seen retrieval order."""
+        state: GraphState = {
+            **self.initial_state,
+            "retrieved_documents": [
+                Document(
+                    page_content="Doc B page 3.",
+                    metadata={"page": 3, "source": "doc_b.pdf"},
+                ),
+                Document(
+                    page_content="Doc A page 1.",
+                    metadata={"page": 1, "source": "doc_a.pdf"},
+                ),
+                Document(
+                    page_content="Doc B page 3 duplicate.",
+                    metadata={"page": 3, "source": "doc_b.pdf"},
+                ),
+                Document(
+                    page_content="Doc A page 2.",
+                    metadata={"page": 2, "source": "doc_a.pdf"},
+                ),
+            ],
+        }
+
+        result = extract_sources_node(state)
+
+        self.assertEqual(
+            result["sources"],
+            [
+                {"page": 3, "source": "doc_b.pdf"},
+                {"page": 1, "source": "doc_a.pdf"},
+                {"page": 2, "source": "doc_a.pdf"},
+            ],
+        )
+
 
     @patch("graph.nodes.generate_answer")
     def test_generate_answer_node(self, mock_generate):

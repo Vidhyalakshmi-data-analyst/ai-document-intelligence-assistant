@@ -58,14 +58,23 @@ def generate_answer_node(
 
 
 def extract_sources_node(state: GraphState) -> GraphState:
-    """Extract source metadata from retrieved documents."""
-    sources = [
-        {
-            "page": document.metadata.get("page"),
-            "source": document.metadata.get("source"),
-        }
-        for document in state["retrieved_documents"]
-    ]
+    """Extract source metadata from retrieved documents with deduplication.
+
+    Deduplicates sources by (source, page) while preserving first-seen order.
+    """
+    sources: list[dict[str, object]] = []
+    seen: set[tuple[object, object]] = set()
+
+    for document in state["retrieved_documents"]:
+        source = document.metadata.get("source")
+        page = document.metadata.get("page")
+        key = (source, page)
+        if key not in seen:
+            seen.add(key)
+            sources.append({
+                "page": page,
+                "source": source,
+            })
 
     return {
         **state,

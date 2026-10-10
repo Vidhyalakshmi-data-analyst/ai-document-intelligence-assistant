@@ -24,6 +24,9 @@ class Settings:
         self.debug: bool = (
             os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
         )
+        self.use_mock_llm: bool = (
+            os.getenv("USE_MOCK_LLM", "False").lower() in ("true", "1", "t")
+        )
         self.gemini_api_key: str | None = os.getenv("GEMINI_API_KEY")
         self.gemini_embedding_model: str = os.getenv(
             "GEMINI_EMBEDDING_MODEL", "gemini-embedding-2-preview"

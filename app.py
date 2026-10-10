@@ -66,6 +66,41 @@ def process_uploaded_document(uploaded_file: Any) -> None:
             temp_path.unlink()
 
 
+def _resolve_source_name(raw_source: Any) -> str:
+    """Resolve a clean, human-readable document name for source attribution.
+
+    Prefers the original uploaded document name from session state when
+    applicable (e.g. for temporary files), and falls back to a safe basename.
+
+    Args:
+        raw_source: Raw source path or string from metadata.
+
+    Returns:
+        User-friendly document name.
+    """
+    if not raw_source:
+        return "Unknown source"
+
+    source_str = str(raw_source).strip()
+    if not source_str:
+        return "Unknown source"
+
+    processed_name = st.session_state.get("processed_document_name")
+    source_basename = Path(source_str).name or source_str
+
+    temp_dir = tempfile.gettempdir().lower()
+    is_temp = (
+        temp_dir in source_str.lower()
+        or source_str.startswith("/tmp")
+        or (source_basename.startswith("tmp") and source_basename.endswith(".pdf"))
+    )
+
+    if processed_name and is_temp:
+        return str(processed_name)
+
+    return source_basename
+
+
 def display_sources(sources: list[dict[str, Any]]) -> None:
     """Render source attribution information in the UI.
 
@@ -77,7 +112,7 @@ def display_sources(sources: list[dict[str, Any]]) -> None:
 
     st.subheader("Sources")
     for item in sources:
-        source_name = item.get("source") or "Unknown source"
+        source_name = _resolve_source_name(item.get("source"))
         page = item.get("page")
         page_label = f"Page {page}" if page is not None else "Page N/A"
         st.markdown(f"- **{source_name}** ({page_label})")

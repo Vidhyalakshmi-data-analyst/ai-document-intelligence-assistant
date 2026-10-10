@@ -239,5 +239,85 @@ class TestAppUIErrorHandling(unittest.TestCase):
         mock_display_sources.assert_called_once_with(sources)
 
 
+class TestDisplaySources(unittest.TestCase):
+    """Unit tests for source attribution rendering in app.py."""
+
+    def setUp(self) -> None:
+        """Initialize mock session state."""
+        self.session_state: dict[str, object] = {
+            "vector_store": None,
+            "processed_document_name": None,
+        }
+        self.state_patcher = patch.object(app.st, "session_state", self.session_state)
+        self.state_patcher.start()
+        self.addCleanup(self.state_patcher.stop)
+
+    @patch.object(app.st, "markdown")
+    @patch.object(app.st, "subheader")
+    def test_display_sources_prefers_uploaded_filename_for_temporary_paths(
+        self,
+        mock_subheader: MagicMock,
+        mock_markdown: MagicMock,
+    ) -> None:
+        """Verify temporary file paths are replaced with original uploaded document name."""
+        self.session_state["processed_document_name"] = "annual_leave_policy.pdf"
+        sources = [
+            {"source": "/tmp/tmp123abc.pdf", "page": 1},
+        ]
+
+        app.display_sources(sources)
+
+        mock_subheader.assert_called_once_with("Sources")
+        mock_markdown.assert_called_once_with("- **annual_leave_policy.pdf** (Page 1)")
+
+    @patch.object(app.st, "markdown")
+    @patch.object(app.st, "subheader")
+    def test_display_sources_uses_safe_basename_when_no_uploaded_name(
+        self,
+        mock_subheader: MagicMock,
+        mock_markdown: MagicMock,
+    ) -> None:
+        """Verify safe basename is used when no uploaded filename is in session state."""
+        self.session_state["processed_document_name"] = None
+        sources = [
+            {"source": "/data/documents/annual_leave_policy.pdf", "page": 2},
+        ]
+
+        app.display_sources(sources)
+
+        mock_subheader.assert_called_once_with("Sources")
+        mock_markdown.assert_called_once_with("- **annual_leave_policy.pdf** (Page 2)")
+
+    @patch.object(app.st, "markdown")
+    @patch.object(app.st, "subheader")
+    def test_display_sources_handles_unknown_source_and_missing_page(
+        self,
+        mock_subheader: MagicMock,
+        mock_markdown: MagicMock,
+    ) -> None:
+        """Verify missing source or page metadata displays gracefully."""
+        sources = [
+            {"source": None, "page": None},
+        ]
+
+        app.display_sources(sources)
+
+        mock_subheader.assert_called_once_with("Sources")
+        mock_markdown.assert_called_once_with("- **Unknown source** (Page N/A)")
+
+    @patch.object(app.st, "markdown")
+    @patch.object(app.st, "subheader")
+    def test_display_sources_empty_list_does_not_render(
+        self,
+        mock_subheader: MagicMock,
+        mock_markdown: MagicMock,
+    ) -> None:
+        """Verify empty sources list renders nothing."""
+        app.display_sources([])
+
+        mock_subheader.assert_not_called()
+        mock_markdown.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
