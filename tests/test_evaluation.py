@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, patch
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
+from config.settings import settings
 from llm.gemini_client import (
     _FALLBACK_RESPONSE,
     build_grounded_prompt,
@@ -129,6 +130,12 @@ class TestGroundingPrompt(unittest.TestCase):
 
 class TestGroundedAnswerGeneration(unittest.TestCase):
     """Evaluation tests for grounded answer generation with mocked Gemini responses."""
+
+    def setUp(self) -> None:
+        """Disable mock LLM mode so ChatGoogleGenerativeAI code path is exercised."""
+        self.settings_patcher = patch.object(settings, "use_mock_llm", False)
+        self.settings_patcher.start()
+        self.addCleanup(self.settings_patcher.stop)
 
     @patch("llm.gemini_client.ChatGoogleGenerativeAI")
     def test_answerable_question_returns_grounded_answer(
